@@ -4,6 +4,9 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
+import jdk.incubator.vector.LongVector;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorSpecies;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -25,7 +28,633 @@ public class PrefixSumBenchmark {
     sanity();
   }
 
+  private static final VectorSpecies<Integer> SPECIES_128 = IntVector.SPECIES_128;
+  private static final VectorSpecies<Long> L_SPECIES_128 = LongVector.SPECIES_128;
+
+  private static final VectorSpecies<Integer> SPECIES_512 = IntVector.SPECIES_512;
+  private static final VectorSpecies<Long> L_SPECIES_512 = LongVector.SPECIES_512;
+
+  private static final VectorSpecies<Integer> SPECIES_FLEX = IntVector.SPECIES_PREFERRED;
+
+  private static final int[] tmpInts = new int[128];
+  private static final long[] tmpLongs = new long[64];
+  private static final int INT_MASK = (1 << 4) - 1;
+  private static final long LONG_MASK = ((1L << 4) - 1) | (((1L << 4) - 1) << 32);
+
   @Benchmark
+  public void scalarDecode_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts;
+    int[] output = state.output;
+
+    scalarDecode(input, output);
+    scalarPrefixSum(output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecode_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts;
+    int[] output = state.output;
+
+    vectorDecode(input, output);
+    scalarPrefixSum(output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecode512_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts512;
+    int[] output = state.output;
+
+    vectorDecode512(input, output);
+    scalarPrefixSum(output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecodeFlex_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedIntsFlex;
+    int[] output = state.output;
+
+    vectorDecodeFlex(input, output);
+    scalarPrefixSum(output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void scalarDecode_VectorPrefixSum(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts;
+    int[] output = state.output;
+
+    scalarDecode(input, tmpInts);
+    vectorPrefixSum(tmpInts, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecode_VectorPrefixSum_TwoPhase(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts;
+    int[] output = state.output;
+
+    vectorDecode(input, tmpInts);
+    vectorPrefixSum(tmpInts, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void scalarDecodeTo32_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    long[] input = state.inputPackedLongs;
+    int[] output = state.output;
+
+    scalarDecodeTo32(input, tmpLongs);
+    scalarPrefixSum32(tmpLongs, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecodeTo32_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    long[] input = state.inputPackedLongs;
+    int[] output = state.output;
+
+    vectorDecodeTo32(input, tmpLongs);
+    scalarPrefixSum32(tmpLongs, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecodeTo32_512_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    long[] input = state.inputPackedLongs;
+    int[] output = state.output;
+
+    vectorDecodeTo32_512(input, tmpLongs);
+    scalarPrefixSum32(tmpLongs, output);
+
+    bh.consume(output);
+  }
+
+//  @Benchmark
+  public void scalarDecodeTo32_VectorPrefixSum(PrefixSumState state, Blackhole bh) {
+    long[] input = state.inputPackedLongs;
+    int[] output = state.output;
+
+    scalarDecodeTo32(input, tmpLongs);
+//    prefixSum32ScalarInlined(tmpLongs, output);
+
+    bh.consume(output);
+  }
+
+//  @Benchmark
+  public void vectorDecodeTo32_VectorPrefixSum(PrefixSumState state, Blackhole bh) {
+    long[] input = state.inputPackedLongs;
+    int[] output = state.output;
+
+    vectorDecodeTo32(input, tmpLongs);
+//    prefixSum32ScalarInlined(tmpLongs, output);
+
+    bh.consume(output);
+  }
+
+
+  private static void scalarDecode(int[] input, int[] output) {
+    int outBase = 0;
+    for (int i = 0; i < 8; i++) {
+      int shift = 0;
+      for (int j = 0; j < 4; j++) {
+        output[outBase] = (input[0] >>> shift) & INT_MASK;
+        output[outBase + 1] = (input[1] >>> shift) & INT_MASK;
+        output[outBase + 2] = (input[2] >>> shift) & INT_MASK;
+        output[outBase + 3] = (input[3] >>> shift) & INT_MASK;
+        shift += 4;
+        outBase += 4;
+      }
+    }
+  }
+
+  private static void vectorDecode(int[] input, int[] output) {
+    IntVector inVec = IntVector.fromArray(SPECIES_128, input, 0);
+    IntVector outVec;
+    int inOff = 0;
+    int outOff = 0;
+
+    outVec = inVec.and(INT_MASK);
+    outVec.intoArray(output, outOff);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    inVec = IntVector.fromArray(SPECIES_128, input, inOff+=4);
+
+    outVec = inVec.and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    inVec = IntVector.fromArray(SPECIES_128, input, inOff+=4);
+
+    outVec = inVec.and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    inVec = IntVector.fromArray(SPECIES_128, input, inOff+=4);
+
+    outVec = inVec.and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
+    outVec.intoArray(output, outOff+=4);
+  }
+
+  private static void vectorDecode512(int[] input, int[] output) {
+    IntVector inVec = IntVector.fromArray(SPECIES_512, input, 0);
+
+    IntVector outVec = inVec.and(INT_MASK);
+    outVec.intoArray(output, 0);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
+    outVec.intoArray(output, 16);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
+    outVec.intoArray(output, 32);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
+    outVec.intoArray(output, 48);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
+    outVec.intoArray(output, 64);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
+    outVec.intoArray(output, 80);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
+    outVec.intoArray(output, 96);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
+    outVec.intoArray(output, 112);
+  }
+
+  private static void vectorDecodeFlex(int[] input, int[] output) {
+    IntVector inVec;
+    IntVector outVec;
+
+    int inOff = 0;
+    int outOff;
+
+    int lanes = SPECIES_FLEX.length();
+    assert 16 % lanes == 0;
+    int bound = 16 / lanes;
+    for (int i = 0; i < bound; i++) {
+      outOff = i * lanes;
+
+      inVec = IntVector.fromArray(SPECIES_FLEX, input, inOff);
+
+      outVec = inVec.and(INT_MASK);
+      outVec.intoArray(output, outOff);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
+      outVec.intoArray(output, outOff + 16);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
+      outVec.intoArray(output, outOff + 32);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
+      outVec.intoArray(output, outOff + 48);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
+      outVec.intoArray(output, outOff + 64);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
+      outVec.intoArray(output, outOff + 80);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
+      outVec.intoArray(output, outOff + 96);
+
+      outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
+      outVec.intoArray(output, outOff + 112);
+
+      inOff += lanes;
+    }
+  }
+
+  private static void scalarPrefixSum(int[] input) {
+    input[1] += input[0];
+    input[2] += input[1];
+    input[3] += input[2];
+    input[4] += input[3];
+    input[5] += input[4];
+    input[6] += input[5];
+    input[7] += input[6];
+    input[8] += input[7];
+    input[9] += input[8];
+    input[10] += input[9];
+    input[11] += input[10];
+    input[12] += input[11];
+    input[13] += input[12];
+    input[14] += input[13];
+    input[15] += input[14];
+    input[16] += input[15];
+    input[17] += input[16];
+    input[18] += input[17];
+    input[19] += input[18];
+    input[20] += input[19];
+    input[21] += input[20];
+    input[22] += input[21];
+    input[23] += input[22];
+    input[24] += input[23];
+    input[25] += input[24];
+    input[26] += input[25];
+    input[27] += input[26];
+    input[28] += input[27];
+    input[29] += input[28];
+    input[30] += input[29];
+    input[31] += input[30];
+    input[32] += input[31];
+    input[33] += input[32];
+    input[34] += input[33];
+    input[35] += input[34];
+    input[36] += input[35];
+    input[37] += input[36];
+    input[38] += input[37];
+    input[39] += input[38];
+    input[40] += input[39];
+    input[41] += input[40];
+    input[42] += input[41];
+    input[43] += input[42];
+    input[44] += input[43];
+    input[45] += input[44];
+    input[46] += input[45];
+    input[47] += input[46];
+    input[48] += input[47];
+    input[49] += input[48];
+    input[50] += input[49];
+    input[51] += input[50];
+    input[52] += input[51];
+    input[53] += input[52];
+    input[54] += input[53];
+    input[55] += input[54];
+    input[56] += input[55];
+    input[57] += input[56];
+    input[58] += input[57];
+    input[59] += input[58];
+    input[60] += input[59];
+    input[61] += input[60];
+    input[62] += input[61];
+    input[63] += input[62];
+    input[64] += input[63];
+    input[65] += input[64];
+    input[66] += input[65];
+    input[67] += input[66];
+    input[68] += input[67];
+    input[69] += input[68];
+    input[70] += input[69];
+    input[71] += input[70];
+    input[72] += input[71];
+    input[73] += input[72];
+    input[74] += input[73];
+    input[75] += input[74];
+    input[76] += input[75];
+    input[77] += input[76];
+    input[78] += input[77];
+    input[79] += input[78];
+    input[80] += input[79];
+    input[81] += input[80];
+    input[82] += input[81];
+    input[83] += input[82];
+    input[84] += input[83];
+    input[85] += input[84];
+    input[86] += input[85];
+    input[87] += input[86];
+    input[88] += input[87];
+    input[89] += input[88];
+    input[90] += input[89];
+    input[91] += input[90];
+    input[92] += input[91];
+    input[93] += input[92];
+    input[94] += input[93];
+    input[95] += input[94];
+    input[96] += input[95];
+    input[97] += input[96];
+    input[98] += input[97];
+    input[99] += input[98];
+    input[100] += input[99];
+    input[101] += input[100];
+    input[102] += input[101];
+    input[103] += input[102];
+    input[104] += input[103];
+    input[105] += input[104];
+    input[106] += input[105];
+    input[107] += input[106];
+    input[108] += input[107];
+    input[109] += input[108];
+    input[110] += input[109];
+    input[111] += input[110];
+    input[112] += input[111];
+    input[113] += input[112];
+    input[114] += input[113];
+    input[115] += input[114];
+    input[116] += input[115];
+    input[117] += input[116];
+    input[118] += input[117];
+    input[119] += input[118];
+    input[120] += input[119];
+    input[121] += input[120];
+    input[122] += input[121];
+    input[123] += input[122];
+    input[124] += input[123];
+    input[125] += input[124];
+    input[126] += input[125];
+    input[127] += input[126];
+  }
+
+  private static void vectorPrefixSum(int[] input, int[] output) {
+    IntVector vec0 = IntVector.fromArray(IntVector.SPECIES_128, input, 0);
+    vec0 = vec0.add(vec0.unslice(1));
+    vec0 = vec0.add(vec0.unslice(2));
+    vec0.intoArray(output, 0);
+
+    for (int off = 4; off < 128; off += IntVector.SPECIES_128.length()) {
+      IntVector vec = IntVector.fromArray(IntVector.SPECIES_128, input, off);
+      vec = vec.add(vec.unslice(1));
+      vec = vec.add(vec.unslice(2));
+      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_128, output[off - 1]));
+      vec.intoArray(output, off);
+    }
+  }
+
+  private static void scalarDecodeTo32(long[] input, long[] output) {
+    int shift = 0;
+    int outBase = 0;
+    for (int i = 0; i < 8; i++) {
+      output[outBase] = (input[0] >>> shift) & LONG_MASK;
+      output[outBase + 1] = (input[1] >>> shift) & LONG_MASK;
+      output[outBase + 2] = (input[2] >>> shift) & LONG_MASK;
+      output[outBase + 3] = (input[3] >>> shift) & LONG_MASK;
+      output[outBase + 4] = (input[4] >>> shift) & LONG_MASK;
+      output[outBase + 5] = (input[5] >>> shift) & LONG_MASK;
+      output[outBase + 6] = (input[6] >>> shift) & LONG_MASK;
+      output[outBase + 7] = (input[7] >>> shift) & LONG_MASK;
+      shift += 4;
+      outBase += 8;
+    }
+  }
+
+  private static void vectorDecodeTo32_512(long[] input, long[] output) {
+    LongVector inVec = LongVector.fromArray(L_SPECIES_512, input, 0);
+
+    LongVector outVec = inVec.and(LONG_MASK);
+    outVec.intoArray(output, 0);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(LONG_MASK);
+    outVec.intoArray(output, 8);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(LONG_MASK);
+    outVec.intoArray(output, 16);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(LONG_MASK);
+    outVec.intoArray(output, 24);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(LONG_MASK);
+    outVec.intoArray(output, 32);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(LONG_MASK);
+    outVec.intoArray(output, 40);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(LONG_MASK);
+    outVec.intoArray(output, 48);
+
+    outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(LONG_MASK);
+    outVec.intoArray(output, 56);
+  }
+
+  private static void vectorDecodeTo32(long[] input, long[] output) {
+    LongVector inVec;
+    LongVector outVec;
+
+    int inOff = 0;
+    int outOff = 0;
+
+    for (int i = 0; i < 4; i++) {
+      inVec = LongVector.fromArray(L_SPECIES_128, input, inOff);
+
+      outVec = inVec.and(LONG_MASK);
+      outVec.intoArray(output, outOff);
+
+      int outOffDelta = 8;
+      int shift = 4;
+      for (int j = 1; j < 8; j++) {
+        outVec = inVec.lanewise(VectorOperators.LSHR, shift).and(LONG_MASK);
+        outVec.intoArray(output, outOff + outOffDelta);
+
+        outOffDelta += 8;
+        shift += 4;
+      }
+
+      inOff += 2;
+      outOff += 2;
+    }
+  }
+
+  private static void scalarPrefixSum32(long[] input, int[] output) {
+    input[1] += input[0];
+    input[2] += input[1];
+    input[3] += input[2];
+    input[4] += input[3];
+    input[5] += input[4];
+    input[6] += input[5];
+    input[7] += input[6];
+    input[8] += input[7];
+    input[9] += input[8];
+    input[10] += input[9];
+    input[11] += input[10];
+    input[12] += input[11];
+    input[13] += input[12];
+    input[14] += input[13];
+    input[15] += input[14];
+    input[16] += input[15];
+    input[17] += input[16];
+    input[18] += input[17];
+    input[19] += input[18];
+    input[20] += input[19];
+    input[21] += input[20];
+    input[22] += input[21];
+    input[23] += input[22];
+    input[24] += input[23];
+    input[25] += input[24];
+    input[26] += input[25];
+    input[27] += input[26];
+    input[28] += input[27];
+    input[29] += input[28];
+    input[30] += input[29];
+    input[31] += input[30];
+    input[32] += input[31];
+    input[33] += input[32];
+    input[34] += input[33];
+    input[35] += input[34];
+    input[36] += input[35];
+    input[37] += input[36];
+    input[38] += input[37];
+    input[39] += input[38];
+    input[40] += input[39];
+    input[41] += input[40];
+    input[42] += input[41];
+    input[43] += input[42];
+    input[44] += input[43];
+    input[45] += input[44];
+    input[46] += input[45];
+    input[47] += input[46];
+    input[48] += input[47];
+    input[49] += input[48];
+    input[50] += input[49];
+    input[51] += input[50];
+    input[52] += input[51];
+    input[53] += input[52];
+    input[54] += input[53];
+    input[55] += input[54];
+    input[56] += input[55];
+    input[57] += input[56];
+    input[58] += input[57];
+    input[59] += input[58];
+    input[60] += input[59];
+    input[61] += input[60];
+    input[62] += input[61];
+    input[63] += input[62];
+
+    for (int i = 0; i < 64; ++i) {
+      long l = input[i];
+      output[i] = (int) (l >>> 32);
+      output[64 + i] = (int) (l & 0xFFFFFFFFL);
+    }
+
+    int delta = output[63];
+    for (int i = 64; i < 128; i++) {
+      output[i] += delta;
+    }
+  }
+
+
+//  @Benchmark
   public void prefixSumScalar(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -38,7 +667,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumScalarInlined(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -175,7 +804,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -200,7 +829,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -227,7 +856,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector512(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -261,7 +890,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK1_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, true, true, true);
   private static final VectorMask<Integer> MASK2_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, false, true, true);
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -294,7 +923,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -326,7 +955,7 @@ public class PrefixSumBenchmark {
   private static final VectorShuffle<Integer> IOTA4_256_EX = VectorShuffle.iota(IntVector.SPECIES_256, -4, 1, false);
   private static final IntVector ZERO_256 = IntVector.zero(IntVector.SPECIES_256);
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v3(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -353,7 +982,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2_inline(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -482,7 +1111,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK8_512 = VectorMask.fromValues(IntVector.SPECIES_512, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true);
 
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector512_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -514,30 +1143,36 @@ public class PrefixSumBenchmark {
   public void sanity() {
     var bh = new Blackhole("Today's password is swordfish. I understand instantiating Blackholes directly is dangerous.");
 
-    for (int size : new int[] { 128, 130, 1024}) {
-      var state = new PrefixSumState();
-      state.size = size;
-      state.setup();
-      prefixSumScalar(state, bh);
-      int[] expectedOutput = state.output;
+    var state = new PrefixSumState();
+    state.setup();
+    prefixSumScalar(state, bh);
+    int[] expectedOutput = state.output;
 
-      assertEqual(expectedOutput, this::prefixSumVector128, bh);
-      assertEqual(expectedOutput, this::prefixSumVector128_v2, bh);
-      assertEqual(expectedOutput, this::prefixSumVector256, bh);
-      assertEqual(expectedOutput, this::prefixSumVector256_v2, bh);
-      assertEqual(expectedOutput, this::prefixSumVector256_v3, bh);
-      assertEqual(expectedOutput, this::prefixSumVector512, bh);
-      assertEqual(expectedOutput, this::prefixSumVector512_v2, bh);
-      if (size == 128) {
-        assertEqual(expectedOutput, this::prefixSumScalarInlined, bh);
-        assertEqual(expectedOutput, this::prefixSumVector256_v2_inline, bh);
-      }
-    }
+    assertEqual(expectedOutput, this::scalarDecode_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::vectorDecode_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::vectorDecode512_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::vectorDecodeFlex_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::scalarDecode_VectorPrefixSum, bh);
+    assertEqual(expectedOutput, this::vectorDecode_VectorPrefixSum_TwoPhase, bh);
+    assertEqual(expectedOutput, this::scalarDecodeTo32_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::vectorDecodeTo32_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::vectorDecodeTo32_512_ScalarPrefixSum, bh);
+//    assertEqual(expectedOutput, this::scalarDecodeTo32_VectorPrefixSum, bh);
+//    assertEqual(expectedOutput, this::vectorDecodeTo32_VectorPrefixSum, bh);
+
+    assertEqual(expectedOutput, this::prefixSumVector128, bh);
+    assertEqual(expectedOutput, this::prefixSumVector128_v2, bh);
+    assertEqual(expectedOutput, this::prefixSumVector256, bh);
+    assertEqual(expectedOutput, this::prefixSumVector256_v2, bh);
+    assertEqual(expectedOutput, this::prefixSumVector256_v3, bh);
+    assertEqual(expectedOutput, this::prefixSumVector512, bh);
+    assertEqual(expectedOutput, this::prefixSumVector512_v2, bh);
+    assertEqual(expectedOutput, this::prefixSumScalarInlined, bh);
+    assertEqual(expectedOutput, this::prefixSumVector256_v2_inline, bh);
   }
 
   static void assertEqual(int[] expectedOutput, BiConsumer<PrefixSumState, Blackhole> func, Blackhole bh) {
     var state = new PrefixSumState();
-    state.size = expectedOutput.length;
     state.setup();
     func.accept(state, bh);
     if (Arrays.equals(expectedOutput, state.output) == false) {

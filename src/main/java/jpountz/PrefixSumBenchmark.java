@@ -175,7 +175,7 @@ public class PrefixSumBenchmark {
   }
 
 
-  @Benchmark
+//  @Benchmark
   public void scalarDecode(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts;
     int[] output = state.output;
@@ -195,7 +195,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorDecode(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts;
     int[] output = state.output;

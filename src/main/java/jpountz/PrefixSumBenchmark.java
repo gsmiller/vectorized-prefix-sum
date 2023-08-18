@@ -15,8 +15,8 @@ import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorShuffle;
 
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 80, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 20, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
 public class PrefixSumBenchmark {
@@ -41,7 +41,7 @@ public class PrefixSumBenchmark {
   private static final int INT_MASK = (1 << 4) - 1;
   private static final long LONG_MASK = ((1L << 4) - 1) | (((1L << 4) - 1) << 32);
 
-  @Benchmark
+//  @Benchmark
   public void scalarDecode_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts;
     int[] output = state.output;
@@ -52,7 +52,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorDecode_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts;
     int[] output = state.output;
@@ -63,7 +63,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorDecode512_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts512;
     int[] output = state.output;
@@ -74,7 +74,18 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
+  public void scalarDecodeFlex_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedIntsFlex;
+    int[] output = state.output;
+
+    scalarDecodeFlex(input, output);
+    scalarPrefixSum(output);
+
+    bh.consume(output);
+  }
+
+//  @Benchmark
   public void vectorDecodeFlex_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedIntsFlex;
     int[] output = state.output;
@@ -85,7 +96,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void scalarDecode_VectorPrefixSum(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts;
     int[] output = state.output;
@@ -96,7 +107,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorDecode_VectorPrefixSum_TwoPhase(PrefixSumState state, Blackhole bh) {
     int[] input = state.inputPackedInts;
     int[] output = state.output;
@@ -107,7 +118,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void scalarDecodeTo32_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     long[] input = state.inputPackedLongs;
     int[] output = state.output;
@@ -118,7 +129,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorDecodeTo32_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     long[] input = state.inputPackedLongs;
     int[] output = state.output;
@@ -129,7 +140,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorDecodeTo32_512_ScalarPrefixSum(PrefixSumState state, Blackhole bh) {
     long[] input = state.inputPackedLongs;
     int[] output = state.output;
@@ -139,6 +150,7 @@ public class PrefixSumBenchmark {
 
     bh.consume(output);
   }
+
 
 //  @Benchmark
   public void scalarDecodeTo32_VectorPrefixSum(PrefixSumState state, Blackhole bh) {
@@ -158,6 +170,47 @@ public class PrefixSumBenchmark {
 
     vectorDecodeTo32(input, tmpLongs);
 //    prefixSum32ScalarInlined(tmpLongs, output);
+
+    bh.consume(output);
+  }
+
+
+  @Benchmark
+  public void scalarDecode(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts;
+    int[] output = state.output;
+
+    scalarDecode(input, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void scalarDecodeFlex(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedIntsFlex;
+    int[] output = state.output;
+
+    scalarDecodeFlex(input, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecode(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedInts;
+    int[] output = state.output;
+
+    vectorDecode(input, output);
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorDecodeFlex(PrefixSumState state, Blackhole bh) {
+    int[] input = state.inputPackedIntsFlex;
+    int[] output = state.output;
+
+    vectorDecodeFlex(input, output);
 
     bh.consume(output);
   }
@@ -313,6 +366,31 @@ public class PrefixSumBenchmark {
 
     outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
     outVec.intoArray(output, 112);
+  }
+
+  private static void scalarDecodeFlex(int[] input, int[] output) {
+    int outBase = 0;
+    int shift = 0;
+    for (int i = 0; i < 8; i++) {
+      output[outBase] = (input[0] >>> shift) & INT_MASK;
+      output[outBase + 1] = (input[1] >>> shift) & INT_MASK;
+      output[outBase + 2] = (input[2] >>> shift) & INT_MASK;
+      output[outBase + 3] = (input[3] >>> shift) & INT_MASK;
+      output[outBase + 4] = (input[4] >>> shift) & INT_MASK;
+      output[outBase + 5] = (input[5] >>> shift) & INT_MASK;
+      output[outBase + 6] = (input[6] >>> shift) & INT_MASK;
+      output[outBase + 7] = (input[7] >>> shift) & INT_MASK;
+      output[outBase + 8] = (input[8] >>> shift) & INT_MASK;
+      output[outBase + 9] = (input[9] >>> shift) & INT_MASK;
+      output[outBase + 10] = (input[10] >>> shift) & INT_MASK;
+      output[outBase + 11] = (input[11] >>> shift) & INT_MASK;
+      output[outBase + 12] = (input[12] >>> shift) & INT_MASK;
+      output[outBase + 13] = (input[13] >>> shift) & INT_MASK;
+      output[outBase + 14] = (input[14] >>> shift) & INT_MASK;
+      output[outBase + 15] = (input[15] >>> shift) & INT_MASK;
+      shift += 4;
+      outBase += 16;
+    }
   }
 
   private static void vectorDecodeFlex(int[] input, int[] output) {
@@ -1151,6 +1229,7 @@ public class PrefixSumBenchmark {
     assertEqual(expectedOutput, this::scalarDecode_ScalarPrefixSum, bh);
     assertEqual(expectedOutput, this::vectorDecode_ScalarPrefixSum, bh);
     assertEqual(expectedOutput, this::vectorDecode512_ScalarPrefixSum, bh);
+    assertEqual(expectedOutput, this::scalarDecodeFlex_ScalarPrefixSum, bh);
     assertEqual(expectedOutput, this::vectorDecodeFlex_ScalarPrefixSum, bh);
     assertEqual(expectedOutput, this::scalarDecode_VectorPrefixSum, bh);
     assertEqual(expectedOutput, this::vectorDecode_VectorPrefixSum_TwoPhase, bh);

@@ -210,46 +210,7 @@ public class PrefixSumBenchmark {
     int[] input = state.inputPackedIntsFlex;
     int[] output = state.output;
 
-    IntVector inVec;
-    IntVector outVec;
-
-    int inOff = 0;
-    int outOff;
-
-    int lanes = SPECIES_FLEX.length();
-    assert 16 % lanes == 0;
-    int bound = 16 / lanes;
-    for (int i = 0; i < bound; i++) {
-      outOff = i * lanes;
-
-      inVec = IntVector.fromArray(SPECIES_FLEX, input, inOff);
-
-      outVec = inVec.and(INT_MASK);
-      outVec.intoArray(output, outOff);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 4).and(INT_MASK);
-      outVec.intoArray(output, outOff + 16);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 8).and(INT_MASK);
-      outVec.intoArray(output, outOff + 32);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 12).and(INT_MASK);
-      outVec.intoArray(output, outOff + 48);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 16).and(INT_MASK);
-      outVec.intoArray(output, outOff + 64);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 20).and(INT_MASK);
-      outVec.intoArray(output, outOff + 80);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 24).and(INT_MASK);
-      outVec.intoArray(output, outOff + 96);
-
-      outVec = inVec.lanewise(VectorOperators.LSHR, 28).and(INT_MASK);
-      outVec.intoArray(output, outOff + 112);
-
-      inOff += lanes;
-    }
+    vectorDecodeFlex(input, output);
 
     bh.consume(output);
   }

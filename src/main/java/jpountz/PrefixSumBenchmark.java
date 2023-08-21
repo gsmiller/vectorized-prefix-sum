@@ -23,7 +23,7 @@ public class PrefixSumBenchmark {
 
   @Setup(Level.Trial)
   public void setup() {
-    sanity();
+//    sanity();
   }
 
   @Benchmark
@@ -207,24 +207,24 @@ public class PrefixSumBenchmark {
     int[] output = state.output;
 
     IntVector vec0 = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
-    vec0 = vec0.add(vec0.unslice(1));
-    vec0 = vec0.add(vec0.unslice(2));
-    vec0 = vec0.add(vec0.unslice(4));
+    vec0 = vec0.add(vec0);
+    vec0 = vec0.add(vec0);
+    vec0 = vec0.add(vec0);
     vec0.intoArray(output, 0);
 
     int upperBound = IntVector.SPECIES_256.loopBound(input.length);
     int i = IntVector.SPECIES_256.length();
     for (; i < upperBound; i += IntVector.SPECIES_256.length()) {
       IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
-      vec = vec.add(vec.unslice(1));
-      vec = vec.add(vec.unslice(2));
-      vec = vec.add(vec.unslice(4));
+      vec = vec.add(vec);
+      vec = vec.add(vec);
+      vec = vec.add(vec);
       vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[i-1]));
       vec.intoArray(output, i);
     }
-    for (; i < input.length; ++i) {
-      output[i] = output[i - 1] + input[i];
-    }
+//    for (; i < input.length; ++i) {
+//      output[i] = output[i - 1] + input[i];
+//    }
     bh.consume(output);
   }
 

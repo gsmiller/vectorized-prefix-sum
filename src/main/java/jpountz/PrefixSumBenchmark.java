@@ -23,7 +23,7 @@ public class PrefixSumBenchmark {
 
   @Setup(Level.Trial)
   public void setup() {
-//    sanity();
+    sanity();
   }
 
   @Benchmark
@@ -192,12 +192,12 @@ public class PrefixSumBenchmark {
       IntVector vec = IntVector.fromArray(IntVector.SPECIES_128, input, i);
       vec = vec.add(vec.unslice(1));
       vec = vec.add(vec.unslice(2));
-//      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_128, output[i-1]));
+      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_128, output[i-1]));
       vec.intoArray(output, i);
     }
-//    for (; i < input.length; ++i) {
-//      output[i] = output[i - 1] + input[i];
-//    }
+    for (; i < input.length; ++i) {
+      output[i] = output[i - 1] + input[i];
+    }
     bh.consume(output);
   }
 

@@ -16,6 +16,7 @@ import jdk.incubator.vector.VectorShuffle;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
+@BenchmarkMode(Mode.AverageTime)
 public class PrefixSumBenchmark {
 
   // See this good resource on using SIMD for prefix sums: https://en.algorithmica.org/hpc/algorithms/prefix/

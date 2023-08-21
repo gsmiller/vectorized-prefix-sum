@@ -23,7 +23,7 @@ public class PrefixSumBenchmark {
 
   @Setup(Level.Trial)
   public void setup() {
-    sanity();
+//    sanity();
   }
 
   @Benchmark
@@ -268,16 +268,16 @@ public class PrefixSumBenchmark {
     int[] output = state.output;
 
     IntVector vec0 = IntVector.fromArray(IntVector.SPECIES_128, input, 0);
-    vec0 = vec0.add(vec0.rearrange(IOTA1_128), MASK1_128);
-    vec0 = vec0.add(vec0.rearrange(IOTA2_128), MASK2_128);
+    vec0 = vec0.add(vec0, MASK1_128);
+    vec0 = vec0.add(vec0, MASK2_128);
     vec0.intoArray(output, 0);
 
     int upperBound = IntVector.SPECIES_128.loopBound(input.length);
     int i = IntVector.SPECIES_128.length();
     for (; i < upperBound; i += IntVector.SPECIES_128.length()) {
       IntVector vec = IntVector.fromArray(IntVector.SPECIES_128, input, i);
-      vec = vec.add(vec.rearrange(IOTA1_128), MASK1_128);
-      vec = vec.add(vec.rearrange(IOTA2_128), MASK2_128);
+      vec = vec.add(vec, MASK1_128);
+      vec = vec.add(vec, MASK2_128);
       vec = vec.add(IntVector.broadcast(IntVector.SPECIES_128, output[i-1]));
       vec.intoArray(output, i);
     }

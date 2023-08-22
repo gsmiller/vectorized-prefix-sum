@@ -16,7 +16,7 @@ import jdk.incubator.vector.VectorShuffle;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.Throughput)
+@BenchmarkMode(Mode.AverageTime)
 public class PrefixSumBenchmark {
 
   // See this good resource on using SIMD for prefix sums: https://en.algorithmica.org/hpc/algorithms/prefix/
@@ -26,7 +26,7 @@ public class PrefixSumBenchmark {
 //    sanity();
   }
 
-  @Benchmark
+//  @Benchmark
   public void scalarShift(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -43,7 +43,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorShift(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -55,7 +55,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumScalar(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -68,7 +68,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumScalarInlined(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -383,119 +383,119 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256_v2_inline(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
 
     IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec.intoArray(output, 0);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 8);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[7]));
     vec.intoArray(output, 8);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 16);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[15]));
     vec.intoArray(output, 16);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 24);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[23]));
     vec.intoArray(output, 24);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 32);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[31]));
     vec.intoArray(output, 32);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 40);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[39]));
     vec.intoArray(output, 40);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 48);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[47]));
     vec.intoArray(output, 48);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 56);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[55]));
     vec.intoArray(output, 56);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 64);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[63]));
     vec.intoArray(output, 64);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 72);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[71]));
     vec.intoArray(output, 72);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 80);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[79]));
     vec.intoArray(output, 80);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 88);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[87]));
     vec.intoArray(output, 88);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 96);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[95]));
     vec.intoArray(output, 96);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 104);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[103]));
     vec.intoArray(output, 104);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 112);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[111]));
     vec.intoArray(output, 112);
 
     vec = IntVector.fromArray(IntVector.SPECIES_256, input, 120);
-    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
-    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
-    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec = vec.add(vec, MASK1_256);
+    vec = vec.add(vec, MASK2_256);
+    vec = vec.add(vec, MASK4_256);
     vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[119]));
     vec.intoArray(output, 120);
 

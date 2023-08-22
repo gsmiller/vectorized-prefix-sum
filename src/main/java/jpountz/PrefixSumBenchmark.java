@@ -16,14 +16,43 @@ import jdk.incubator.vector.VectorShuffle;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.AverageTime)
+@BenchmarkMode(Mode.Throughput)
 public class PrefixSumBenchmark {
 
   // See this good resource on using SIMD for prefix sums: https://en.algorithmica.org/hpc/algorithms/prefix/
 
   @Setup(Level.Trial)
   public void setup() {
-    sanity();
+//    sanity();
+  }
+
+  @Benchmark
+  public void scalarShift(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    output[0] = input[7];
+    output[7] = input[6];
+    output[6] = input[5];
+    output[5] = input[4];
+    output[4] = input[3];
+    output[3] = input[2];
+    output[2] = input[1];
+    output[1] = input[0];
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void vectorShift(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
+    vec = vec.rearrange(IOTA1_256);
+    vec.intoArray(output, 0);
+
+    bh.consume(output);
   }
 
 //  @Benchmark
@@ -39,7 +68,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumScalarInlined(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -262,7 +291,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK1_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, true, true, true);
   private static final VectorMask<Integer> MASK2_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, false, true, true);
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -295,7 +324,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;

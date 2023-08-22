@@ -23,7 +23,7 @@ public class PrefixSumBenchmark {
 
   @Setup(Level.Trial)
   public void setup() {
-//    sanity();
+    sanity();
   }
 
 //  @Benchmark
@@ -55,7 +55,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumScalar(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -291,7 +291,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK1_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, true, true, true);
   private static final VectorMask<Integer> MASK2_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, false, true, true);
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector128_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -324,7 +324,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;

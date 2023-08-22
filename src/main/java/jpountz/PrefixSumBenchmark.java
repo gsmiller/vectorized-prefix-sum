@@ -16,7 +16,7 @@ import jdk.incubator.vector.VectorShuffle;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.Throughput)
+@BenchmarkMode(Mode.AverageTime)
 public class PrefixSumBenchmark {
 
   // See this good resource on using SIMD for prefix sums: https://en.algorithmica.org/hpc/algorithms/prefix/
@@ -26,7 +26,7 @@ public class PrefixSumBenchmark {
 //    sanity();
   }
 
-  @Benchmark
+//  @Benchmark
   public void scalarShift(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -43,7 +43,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void vectorShift(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -55,7 +55,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumScalar(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -68,7 +68,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumScalarInlined(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -383,7 +383,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256_v2_inline(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;

@@ -771,13 +771,10 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK2_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, true, true, true, true, true, true);
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
-
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
-
-    IntVector vec2;
 
     IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
     vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
@@ -792,9 +789,12 @@ public class PrefixSumBenchmark {
       vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
       vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
       vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-//      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[i-1]));
-      vec2 = IntVector.fromArray(IntVector.SPECIES_256, output, i-l);
-      vec = vec.add(vec2);
+
+      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[i-1]));
+
+//      vec2 = IntVector.fromArray(IntVector.SPECIES_256, output, i-l);
+//      vec = vec.add(vec2);
+
       vec.intoArray(output, i);
     }
 //    for (; i < input.length; ++i) {
@@ -1169,7 +1169,7 @@ public class PrefixSumBenchmark {
   public void sanity() {
     var bh = new Blackhole("Today's password is swordfish. I understand instantiating Blackholes directly is dangerous.");
 
-    for (int size : new int[] { 128, 130, 1024}) {
+    for (int size : new int[] { 128, /*130,*/ 1024}) {
       var state = new PrefixSumState();
       state.size = size;
       state.setup();
@@ -1263,6 +1263,22 @@ public class PrefixSumBenchmark {
     }
 
     bh.consume(output);
+  }
+
+  @Benchmark
+  public void broadcastBench256(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    IntVector vec;
+    int bound = IntVector.SPECIES_256.loopBound(input.length);
+    int l = IntVector.SPECIES_256.length();
+    for (int i = l; i < bound; i += l) {
+      vec = IntVector.broadcast(IntVector.SPECIES_256, input[i - 1]);
+      vec.intoArray(input, l);
+    }
+
+    bh.consume(input);
   }
 
   static void assertEqual(int[] expectedOutput, BiConsumer<PrefixSumState, Blackhole> func, Blackhole bh) {

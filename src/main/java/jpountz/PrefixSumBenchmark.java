@@ -23,7 +23,7 @@ public class PrefixSumBenchmark {
 
   @Setup(Level.Trial)
   public void setup() {
-    sanity();
+//    sanity();
   }
 
 //  @Benchmark
@@ -68,7 +68,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumScalarInlined(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -291,7 +291,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK1_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, true, true, true);
   private static final VectorMask<Integer> MASK2_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, false, true, true);
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -777,25 +777,29 @@ public class PrefixSumBenchmark {
     int[] input = state.input;
     int[] output = state.output;
 
-    IntVector vec0 = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
-    vec0 = vec0.add(vec0.rearrange(IOTA1_256), MASK1_256);
-    vec0 = vec0.add(vec0.rearrange(IOTA2_256), MASK2_256);
-    vec0 = vec0.add(vec0.rearrange(IOTA4_256), MASK4_256);
-    vec0.intoArray(output, 0);
+    IntVector vec2;
+
+    IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
+    vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
+    vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
+    vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
+    vec.intoArray(output, 0);
 
     int upperBound = IntVector.SPECIES_256.loopBound(input.length);
-    int i = IntVector.SPECIES_256.length();
-    for (; i < upperBound; i += IntVector.SPECIES_256.length()) {
-      IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
+    int l = IntVector.SPECIES_256.length();
+    for (int i = l; i < upperBound; i += l) {
+      vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
       vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
       vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
       vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[i-1]));
+//      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[i-1]));
+      vec2 = IntVector.fromArray(IntVector.SPECIES_256, output, i-l);
+      vec = vec.add(vec2);
       vec.intoArray(output, i);
     }
-    for (; i < input.length; ++i) {
-      output[i] = output[i - 1] + input[i];
-    }
+//    for (; i < input.length; ++i) {
+//      output[i] = output[i - 1] + input[i];
+//    }
     bh.consume(output);
   }
 

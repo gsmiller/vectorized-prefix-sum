@@ -316,7 +316,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128_v2_incorrect_no_shuffle(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -341,7 +341,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128_v2_incorrect_no_shuffle_or_mask(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -565,7 +565,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector128_v2_inline_incorrect_no_shuffle(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -799,7 +799,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2_incorrect_no_shuffle(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -826,7 +826,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2_incorrect_no_shuffle_no_mask(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -1004,7 +1004,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2_inline_incorrect_no_shuffle(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;

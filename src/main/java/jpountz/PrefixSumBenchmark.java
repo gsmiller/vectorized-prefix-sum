@@ -772,7 +772,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -1185,6 +1185,80 @@ public class PrefixSumBenchmark {
         assertEqual(expectedOutput, this::prefixSumVector256_v2_inline, bh);
       }
     }
+  }
+
+  private static final VectorShuffle<Integer> IOTA1_SP = VectorShuffle.iota(IntVector.SPECIES_PREFERRED, -1, 1, true);
+
+  @Benchmark
+  public void shuffleBenchSP(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    IntVector vec;
+
+    int bound = IntVector.SPECIES_PREFERRED.loopBound(input.length);
+    int l = IntVector.SPECIES_PREFERRED.length();
+    for (int i = l; i < bound; i += l) {
+      vec = IntVector.fromArray(IntVector.SPECIES_PREFERRED, input, i);
+      vec = vec.rearrange(IOTA1_SP);
+      vec.intoArray(output, i);
+    }
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void shuffleBench128(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    IntVector vec;
+
+    int bound = IntVector.SPECIES_128.loopBound(input.length);
+    int l = IntVector.SPECIES_128.length();
+    for (int i = l; i < bound; i += l) {
+      vec = IntVector.fromArray(IntVector.SPECIES_128, input, i);
+      vec = vec.rearrange(IOTA1_128);
+      vec.intoArray(output, i);
+    }
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void shuffleBench256(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    IntVector vec;
+
+    int bound = IntVector.SPECIES_256.loopBound(input.length);
+    int l = IntVector.SPECIES_256.length();
+    for (int i = l; i < bound; i += l) {
+      vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
+      vec = vec.rearrange(IOTA1_256);
+      vec.intoArray(output, i);
+    }
+
+    bh.consume(output);
+  }
+
+  @Benchmark
+  public void shuffleBench512(PrefixSumState state, Blackhole bh) {
+    int[] input = state.input;
+    int[] output = state.output;
+
+    IntVector vec;
+
+    int bound = IntVector.SPECIES_512.loopBound(input.length);
+    int l = IntVector.SPECIES_512.length();
+    for (int i = l; i < bound; i += l) {
+      vec = IntVector.fromArray(IntVector.SPECIES_512, input, i);
+      vec = vec.rearrange(IOTA1_512);
+      vec.intoArray(output, i);
+    }
+
+    bh.consume(output);
   }
 
   static void assertEqual(int[] expectedOutput, BiConsumer<PrefixSumState, Blackhole> func, Blackhole bh) {

@@ -405,7 +405,8 @@ public class PrefixSumBenchmark {
 
     int upperBound = IntVector.SPECIES_256.loopBound(input.length);
     int l = IntVector.SPECIES_256.length();
-    for (int i = l; i < upperBound; i += l) {
+    int i = l;
+    for (; i < upperBound; i += l) {
       vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
       vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
       vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
@@ -415,7 +416,7 @@ public class PrefixSumBenchmark {
 
     IntVector accum = IntVector.zero(IntVector.SPECIES_256);
     IntVector delta;
-    for (int i = 0; i < upperBound; i += l) {
+    for (i = 0; i < upperBound; i += l) {
       delta = IntVector.broadcast(IntVector.SPECIES_256, input[i + 7]);
       vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
       vec = vec.add(accum);
@@ -423,9 +424,9 @@ public class PrefixSumBenchmark {
       accum = accum.add(delta);
     }
 
-//    for (; i < input.length; ++i) {
-//      input[i] = input[i - 1] + input[i];
-//    }
+    for (; i < input.length; ++i) {
+      input[i] = input[i - 1] + input[i];
+    }
 
     // copy input to output only for sanity validation
     state.output = input;
@@ -603,11 +604,11 @@ public class PrefixSumBenchmark {
 
       assertEqual(expectedOutput, this::prefixSumVector128, bh);
       assertEqual(expectedOutput, this::prefixSumVector128_v2, bh);
-//      assertEqual(expectedOutput, this::prefixSumVector128_v4, bh);
+      assertEqual(expectedOutput, this::prefixSumVector128_v4, bh);
       assertEqual(expectedOutput, this::prefixSumVector256, bh);
       assertEqual(expectedOutput, this::prefixSumVector256_v2, bh);
       assertEqual(expectedOutput, this::prefixSumVector256_v3, bh);
-//      assertEqual(expectedOutput, this::prefixSumVector256_v4, bh);
+      assertEqual(expectedOutput, this::prefixSumVector256_v4, bh);
       assertEqual(expectedOutput, this::prefixSumVector512, bh);
       assertEqual(expectedOutput, this::prefixSumVector512_v2, bh);
       if (size == 128) {

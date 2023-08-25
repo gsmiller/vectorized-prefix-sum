@@ -9,7 +9,7 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class PrefixSumState {
 
-  @Param({"128"/*, "1024"*/})
+  @Param({"128", "1024"})
   int size;
 
   int[] input ;

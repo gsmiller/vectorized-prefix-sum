@@ -16,14 +16,14 @@ import jdk.incubator.vector.VectorShuffle;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.Throughput)
+@BenchmarkMode(Mode.AverageTime)
 public class PrefixSumBenchmark {
 
   // See this good resource on using SIMD for prefix sums: https://en.algorithmica.org/hpc/algorithms/prefix/
 
   @Setup(Level.Trial)
   public void setup() {
-//    sanity();
+    sanity();
   }
 
 //  @Benchmark
@@ -774,13 +774,13 @@ public class PrefixSumBenchmark {
   @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
-//    int[] output = state.output;
+    int[] output = state.output;
 
     IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
     vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
     vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
     vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-    vec.intoArray(input, 0);
+    vec.intoArray(output, 0);
 
     int upperBound = IntVector.SPECIES_256.loopBound(input.length);
     int l = IntVector.SPECIES_256.length();
@@ -790,29 +790,29 @@ public class PrefixSumBenchmark {
       vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
       vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
 
-      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, input[i-1]));
+      vec = vec.add(IntVector.broadcast(IntVector.SPECIES_256, output[i-1]));
 
 //      vec2 = IntVector.fromArray(IntVector.SPECIES_256, output, i-l);
 //      vec = vec.add(vec2);
 
-      vec.intoArray(input, i);
+      vec.intoArray(output, i);
     }
 //    for (; i < input.length; ++i) {
 //      output[i] = output[i - 1] + input[i];
 //    }
-    bh.consume(input);
+    bh.consume(output);
   }
 
   @Benchmark
-  public void prefixSumVector256_v2_5(PrefixSumState state, Blackhole bh) {
+  public void prefixSumVector256_v4(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
-//    int[] output = state.output;
+    int[] output = state.output;
 
     IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
     vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
     vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
     vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-    vec.intoArray(input, 0);
+    vec.intoArray(output, 0);
 
     int upperBound = IntVector.SPECIES_256.loopBound(input.length);
     int l = IntVector.SPECIES_256.length();
@@ -821,23 +821,23 @@ public class PrefixSumBenchmark {
       vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
       vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
       vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-      vec.intoArray(input, i);
+      vec.intoArray(output, i);
     }
 
     IntVector s = IntVector.zero(IntVector.SPECIES_256);
     IntVector d;
     for (int i = 0; i < upperBound; i += l) {
-      d = IntVector.broadcast(IntVector.SPECIES_256, input[i + 7]);
-      vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
+      d = IntVector.broadcast(IntVector.SPECIES_256, output[i + 7]);
+      vec = IntVector.fromArray(IntVector.SPECIES_256, output, i);
       vec = vec.add(s);
-      vec.intoArray(input, i);
+      vec.intoArray(output, i);
       s = s.add(d);
     }
 
 //    for (; i < input.length; ++i) {
 //      output[i] = output[i - 1] + input[i];
 //    }
-    bh.consume(input);
+    bh.consume(output);
   }
 
 //  @Benchmark
@@ -1206,7 +1206,7 @@ public class PrefixSumBenchmark {
   public void sanity() {
     var bh = new Blackhole("Today's password is swordfish. I understand instantiating Blackholes directly is dangerous.");
 
-    for (int size : new int[] { 128, /*130,*/ 1024}) {
+    for (int size : new int[] { 128, 130, 1024}) {
       var state = new PrefixSumState();
       state.size = size;
       state.setup();
@@ -1222,7 +1222,7 @@ public class PrefixSumBenchmark {
       assertEqual(expectedOutput, this::prefixSumVector512_v2, bh);
       if (size == 128) {
         assertEqual(expectedOutput, this::prefixSumVector256_v2, bh);
-        assertEqual(expectedOutput, this::prefixSumVector256_v2_5, bh);
+        assertEqual(expectedOutput, this::prefixSumVector256_v4, bh);
 
         assertEqual(expectedOutput, this::prefixSumScalarInlined, bh);
         assertEqual(expectedOutput, this::prefixSumVector128_v2_inline, bh);

@@ -16,14 +16,14 @@ import jdk.incubator.vector.VectorShuffle;
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(value = 1, jvmArgsPrepend = {"--add-modules=jdk.incubator.vector"})
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.AverageTime)
+@BenchmarkMode(Mode.Throughput)
 public class PrefixSumBenchmark {
 
   // See this good resource on using SIMD for prefix sums: https://en.algorithmica.org/hpc/algorithms/prefix/
 
   @Setup(Level.Trial)
   public void setup() {
-    sanity();
+//    sanity();
   }
 
 //  @Benchmark
@@ -68,7 +68,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumScalarInlined(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -771,7 +771,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK2_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, true, true, true, true, true, true);
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
-  @Benchmark
+//  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
 //    int[] output = state.output;

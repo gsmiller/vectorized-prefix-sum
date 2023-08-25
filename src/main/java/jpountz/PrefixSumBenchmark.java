@@ -26,7 +26,7 @@ public class PrefixSumBenchmark {
 //    sanity();
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumScalar(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -176,7 +176,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector128(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -201,7 +201,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -228,7 +228,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector512(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -262,7 +262,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK1_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, true, true, true);
   private static final VectorMask<Integer> MASK2_128 = VectorMask.fromValues(IntVector.SPECIES_128, false, false, true, true);
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector128_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -287,7 +287,7 @@ public class PrefixSumBenchmark {
     bh.consume(output);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector128_v4(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
 
@@ -334,7 +334,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK4_256 = VectorMask.fromValues(IntVector.SPECIES_256, false, false, false, false, true, true, true, true);
 
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -366,7 +366,7 @@ public class PrefixSumBenchmark {
   private static final VectorShuffle<Integer> IOTA4_256_EX = VectorShuffle.iota(IntVector.SPECIES_256, -4, 1, false);
   private static final IntVector ZERO_256 = IntVector.zero(IntVector.SPECIES_256);
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256_v3(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -433,7 +433,7 @@ public class PrefixSumBenchmark {
     bh.consume(input);
   }
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector256_v2_inline(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;
@@ -562,7 +562,7 @@ public class PrefixSumBenchmark {
   private static final VectorMask<Integer> MASK8_512 = VectorMask.fromValues(IntVector.SPECIES_512, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true);
 
 
-//  @Benchmark
+  @Benchmark
   public void prefixSumVector512_v2(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
     int[] output = state.output;

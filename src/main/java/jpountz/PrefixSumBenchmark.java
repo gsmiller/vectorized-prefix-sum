@@ -806,13 +806,13 @@ public class PrefixSumBenchmark {
   @Benchmark
   public void prefixSumVector256_v4(PrefixSumState state, Blackhole bh) {
     int[] input = state.input;
-    int[] output = state.output;
+//    int[] output = state.output;
 
     IntVector vec = IntVector.fromArray(IntVector.SPECIES_256, input, 0);
     vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
     vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
     vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-    vec.intoArray(output, 0);
+    vec.intoArray(input, 0);
 
     int upperBound = IntVector.SPECIES_256.loopBound(input.length);
     int l = IntVector.SPECIES_256.length();
@@ -821,23 +821,24 @@ public class PrefixSumBenchmark {
       vec = vec.add(vec.rearrange(IOTA1_256), MASK1_256);
       vec = vec.add(vec.rearrange(IOTA2_256), MASK2_256);
       vec = vec.add(vec.rearrange(IOTA4_256), MASK4_256);
-      vec.intoArray(output, i);
+      vec.intoArray(input, i);
     }
 
     IntVector s = IntVector.zero(IntVector.SPECIES_256);
     IntVector d;
     for (int i = 0; i < upperBound; i += l) {
-      d = IntVector.broadcast(IntVector.SPECIES_256, output[i + 7]);
-      vec = IntVector.fromArray(IntVector.SPECIES_256, output, i);
+      d = IntVector.broadcast(IntVector.SPECIES_256, input[i + 7]);
+      vec = IntVector.fromArray(IntVector.SPECIES_256, input, i);
       vec = vec.add(s);
-      vec.intoArray(output, i);
+      vec.intoArray(input, i);
       s = s.add(d);
     }
 
 //    for (; i < input.length; ++i) {
 //      output[i] = output[i - 1] + input[i];
 //    }
-    bh.consume(output);
+    state.output = input;
+    bh.consume(input);
   }
 
 //  @Benchmark

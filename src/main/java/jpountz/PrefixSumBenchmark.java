@@ -22,7 +22,7 @@ public class PrefixSumBenchmark {
 
   @Setup(Level.Trial)
   public void setup() {
-//    sanity();
+    sanity();
   }
 
   @Benchmark
